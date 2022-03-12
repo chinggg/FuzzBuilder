@@ -25,7 +25,7 @@ class IRReader {
         set<Function*> get_functions_to_fuzz() const;
         set<Function*> get_functions_to_remove() const;
         set<Function*> get_functions_to_collect() const;
-        set<Instruction*> get_target_instructions(string n) const;
+        set<Instruction*> get_target_instructions(Function* f) const;
 
 //        Function* get_callee(Instruction& i) const;
 };

@@ -225,10 +225,9 @@ set<Function*> IRReader::get_functions_to_collect() const {
     return  this->get_target_functions();
 }
 
-set<Instruction*> IRReader::get_target_instructions(string n) const {
+set<Instruction*> IRReader::get_target_instructions(Function *f) const {
     set<Instruction*> ret;
 
-    Function* f = this->m->getFunction(n);
     if(f == nullptr) {
         return ret;
     } 

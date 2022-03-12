@@ -68,7 +68,7 @@ Function* IRWriter::get_read_function(Module& m) {
 
     FunctionType* fty = FunctionType::get(rty, ptys, false);
 
-    return dyn_cast<Function>(m.getOrInsertFunction("read", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("read", fty).getCallee());
 }
 
 Function* IRWriter::get_calloc_function(Module& m) {
@@ -81,7 +81,7 @@ Function* IRWriter::get_calloc_function(Module& m) {
 
     FunctionType* fty = FunctionType::get(rty, ptys, false);
 
-    return dyn_cast<Function>(m.getOrInsertFunction("calloc", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("calloc", fty).getCallee());
 }
 
 Function* IRWriter::get_free_function(Module& m) {
@@ -93,7 +93,7 @@ Function* IRWriter::get_free_function(Module& m) {
 
     FunctionType* fty = FunctionType::get(rty, ptys, false);
 
-    return dyn_cast<Function>(m.getOrInsertFunction("free", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("free", fty).getCallee());
 }
 
 Function* IRWriter::get_memcpy_function(Module& m) {
@@ -101,13 +101,12 @@ Function* IRWriter::get_memcpy_function(Module& m) {
         Type::getInt8PtrTy(m.getContext()),
         Type::getInt8PtrTy(m.getContext()),
         Type::getInt32Ty(m.getContext()),
-        Type::getInt32Ty(m.getContext()),
         Type::getInt1Ty(m.getContext())
     };
 
     Type* rty = Type::getVoidTy(m.getContext());
     FunctionType *fty = FunctionType::get(rty, ptys, false);
-    return dyn_cast<Function>(m.getOrInsertFunction("llvm.memcpy.p0i8.p0i8.i32", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("llvm.memcpy.p0i8.p0i8.i32", fty).getCallee());
 }
 
 Function* IRWriter::get_open_function(Module& m) {
@@ -118,7 +117,7 @@ Function* IRWriter::get_open_function(Module& m) {
 
     Type* rty = Type::getInt32Ty(m.getContext());
     FunctionType *fty = FunctionType::get(rty, ptys, true);
-    return dyn_cast<Function>(m.getOrInsertFunction("open64", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("open64", fty).getCallee());
 }
 
 Function* IRWriter::get_flock_function(Module& m) {
@@ -129,7 +128,7 @@ Function* IRWriter::get_flock_function(Module& m) {
 
     Type* rty = Type::getInt32Ty(m.getContext());
     FunctionType* fty = FunctionType::get(rty, ptys, false);
-    return dyn_cast<Function>(m.getOrInsertFunction("flock", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("flock", fty).getCallee());
 }
 
 Function* IRWriter::get_write_function(Module &m) {
@@ -141,7 +140,7 @@ Function* IRWriter::get_write_function(Module &m) {
 
     Type* rty = Type::getInt32Ty(m.getContext());
     FunctionType* fty = FunctionType::get(rty, ptys, false);
-    return dyn_cast<Function>(m.getOrInsertFunction("write", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("write", fty).getCallee());
 }
 
 Function* IRWriter::get_close_function(Module& m) {
@@ -151,7 +150,7 @@ Function* IRWriter::get_close_function(Module& m) {
 
     Type* rty = Type::getInt32Ty(m.getContext());
     FunctionType* fty = FunctionType::get(rty, ptys, false);
-    return dyn_cast<Function>(m.getOrInsertFunction("close", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("close", fty).getCallee());
 }
 
 Function* IRWriter::get_strlen_function(Module& m) {
@@ -161,7 +160,7 @@ Function* IRWriter::get_strlen_function(Module& m) {
 
     Type* rty = Type::getInt32Ty(m.getContext());
     FunctionType* fty = FunctionType::get(rty, ptys, false);
-    return dyn_cast<Function>(m.getOrInsertFunction("strlen", fty));
+    return dyn_cast<Function>(m.getOrInsertFunction("strlen", fty).getCallee());
 }
 
 void IRWriter::set_argument(Instruction& i, Value& v, size_t idx) {
@@ -226,7 +225,7 @@ bool IRWriter::interface() {
         { add, builder.getInt32(1) });
     builder.CreateStore(call1, &glob_buf);
     builder.CreateCall(get_memcpy_function(module),
-        { call1, n0, call, builder.getInt32(1), builder.getInt1(0) });
+        { call1, n0, call, builder.getInt1(0) });
     Value* n1 = builder.CreateLoad(&glob_size);
     Value* add3 = builder.CreateAdd(n1, call); 
     builder.CreateStore(add3, &glob_size);
@@ -250,10 +249,10 @@ bool IRWriter::interface() {
         { add10, builder.getInt32(1) });
     Value* n3 = builder.CreateLoad(&glob_buf);
     builder.CreateCall(get_memcpy_function(module),
-        { call11, n3, n2, builder.getInt32(1), builder.getInt1(0) });
+        { call11, n3, n2, builder.getInt1(0) });
     Value* add_ptr = builder.CreateInBoundsGEP(Type::getInt8Ty(ctx), call11, n2);
     builder.CreateCall(get_memcpy_function(module),
-        { add_ptr, n0, call6, builder.getInt32(1), builder.getInt1(0) });
+        { add_ptr, n0, call6, builder.getInt1(0) });
     builder.CreateCall(get_free_function(module), { n3 });
     builder.CreateStore(call11, &glob_buf);
     Value* n4 = builder.CreateLoad(&glob_size);
@@ -268,7 +267,7 @@ void IRWriter::fuzz() {
     IRReader reader = IRReader(this->f->getParent());
 
     set<Instruction*> srcs =
-        reader.get_target_instructions(string(this->f->getName()));
+        reader.get_target_instructions(this->f);
 
     size_t cnt = 1;
     for(auto e : srcs) {
@@ -395,10 +394,7 @@ void IRWriter::collect() {
     builder.CreateCondBr(cmp, entry2, link);
 
     builder.SetInsertPoint(entry2);
-
-    Function* func = get_open_function(module);
-
-    Value* call = builder.CreateCall(func,
+    Value* call = builder.CreateCall(get_open_function(module),
         { builder.CreateInBoundsGEP(path, {builder.getInt32(0), builder.getInt32(0)}),
             builder.getInt32(1089), builder.getInt32(420) });
     Value* call1 = builder.CreateCall(get_flock_function(module),
