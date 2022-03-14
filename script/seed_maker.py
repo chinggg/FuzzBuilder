@@ -14,22 +14,20 @@ def main():
     if not os.path.exists(seed_out_path):
         os.makedirs(seed_out_path)
 
-    f = open(seed_path, "r")
-    contents = f.read().split("\nfuzzbuilder=============\n")
-    f.close()
+    with open(seed_path, "rb") as f:
+        contents = f.read().split(b"\nfuzzbuilder=============\n")
 
     cnt_table = {}
-    for i in range(0, len(contents)):
+    for i, content in enumerate(contents):
         print ("[" + str(i) + "/" + str(len(contents)) + "]")
-        if len(contents[i]) == 0:
+        if not content:
             continue
-        content = contents[i]
-        key = content[:content.find("\n")]
-        seed = content[content.find("\n")+1:]
+        key = content[:content.find(b"\n")].decode()
+        seed = content[content.find(b"\n")+1:]
 
         cnt = 1
-        cache = []
-        try:
+        cache = set()
+        try:  # if key is already counted, use previous cnt and cache
             cnt = cnt_table[key][0]
             cache = cnt_table[key][1]
         except KeyError:
@@ -41,14 +39,13 @@ def main():
         try:
             if not os.path.exists(seed_out_path + os.sep + key):
                 os.makedirs(seed_out_path + os.sep + key)
-            f = open(seed_out_path + os.sep + key + os.sep + key + ".seed." + str(cnt), "w")
-            f.write(seed)
-            f.close()
+            with open(seed_out_path + os.sep + key + os.sep + key + ".seed." + str(cnt), "wb") as f:
+                f.write(seed)
         except TypeError:
             print ("key : " + key)
 
         cnt += 1
-        cache.append(seed)
+        cache.add(seed)
         cnt_table[key] = (cnt, cache)
 
 if __name__ == "__main__":
